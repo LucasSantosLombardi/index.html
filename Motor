@@ -1,0 +1,937 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Intensube — Motor Generativo</title>
+<style>
+  /* ── Reset e variáveis ── */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --paper:  #f5f1e8;
+    --paper2: #ebe5d4;
+    --ink:    #1a1814;
+    --ink2:   #4a463c;
+    --ink3:   #8a8372;
+    --accent: #c84b1a;
+    --green:  #2d6a4f;
+    --red:    #b71c1c;
+    --serif:  'EB Garamond', Georgia, serif;
+    --mono:   'JetBrains Mono', 'Courier New', monospace;
+  }
+  body { background: var(--paper); color: var(--ink); font-family: var(--serif); min-height: 100vh; padding: 0 24px 60px; }
+  button, input, select, textarea { font-family: inherit; }
+  input, textarea { outline: none; }
+  pre { white-space: pre-wrap; word-break: break-word; }
+
+  /* ── Layout ── */
+  .container { max-width: 900px; margin: 0 auto; }
+
+  /* ── Header ── */
+  header { border-bottom: 2px solid var(--ink); padding: 18px 0 14px; margin-bottom: 28px; display: flex; align-items: baseline; gap: 16px; flex-wrap: wrap; }
+  header h1 { font-size: 30px; font-weight: 900; letter-spacing: -0.04em; }
+  header span { font-family: var(--mono); font-size: 9px; text-transform: uppercase; letter-spacing: 0.2em; color: var(--ink3); }
+  .badge-ok { font-family: var(--mono); font-size: 9px; background: var(--green); color: white; padding: 2px 8px; }
+
+  /* ── Tabs ── */
+  .tabs { display: flex; border-bottom: 1px solid var(--ink3); margin-bottom: 28px; overflow-x: auto; }
+  .tab { border: none; border-right: 1px solid var(--ink3); padding: 11px 18px; font-family: var(--mono); font-size: 10px; text-transform: uppercase; letter-spacing: 0.12em; cursor: pointer; background: transparent; color: var(--ink2); white-space: nowrap; }
+  .tab.ativo { background: var(--ink); color: white; }
+  .tab:disabled { color: var(--ink3); cursor: default; }
+
+  /* ── Secções ── */
+  .secao { display: none; }
+  .secao.visivel { display: block; }
+
+  /* ── Labels e campos ── */
+  .label { font-family: var(--mono); font-size: 9px; text-transform: uppercase; letter-spacing: 0.2em; color: var(--ink3); margin-bottom: 5px; display: block; }
+  .input { width: 100%; padding: 10px 12px; border: 1px solid var(--ink); background: var(--paper); color: var(--ink); font-size: 13px; font-family: var(--mono); }
+  .textarea { width: 100%; padding: 12px 14px; border: 1px solid var(--ink); background: var(--paper); color: var(--ink); font-size: 14px; line-height: 1.6; resize: vertical; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .campo { margin-bottom: 14px; }
+
+  /* ── Botões ── */
+  .btn { display: inline-flex; align-items: center; gap: 7px; padding: 9px 16px; font-family: var(--mono); font-size: 10px; text-transform: uppercase; letter-spacing: 0.12em; cursor: pointer; border: 1px solid var(--ink); background: transparent; color: var(--ink); }
+  .btn:disabled { opacity: 0.5; cursor: default; }
+  .btn-primary { background: var(--ink); color: white; }
+  .btn-success { background: var(--green); color: white; border-color: var(--green); }
+  .btn-ghost { color: var(--ink3); border-color: var(--ink3); background: transparent; }
+  .btn-full { width: 100%; justify-content: center; font-size: 12px; padding: 14px; }
+
+  /* ── Mensagens ── */
+  .erro { display: flex; gap: 10px; padding: 12px 14px; border: 1px solid var(--red); background: rgba(183,28,28,0.06); margin-bottom: 14px; }
+  .erro span { font-family: var(--mono); font-size: 11px; color: var(--red); line-height: 1.6; }
+  .ok-msg { font-family: var(--mono); font-size: 10px; color: var(--green); }
+  .info-msg { font-family: var(--mono); font-size: 10px; color: var(--ink3); }
+
+  /* ── Acordeão SQL ── */
+  .acordeao-btn { width: 100%; background: var(--paper2); border: 1px solid var(--ink); padding: 12px 16px; font-family: var(--mono); font-size: 10px; text-transform: uppercase; letter-spacing: 0.15em; cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
+  .acordeao-corpo { border: 1px solid var(--ink); border-top: none; display: none; }
+  .acordeao-corpo.aberto { display: block; }
+
+  /* ── Upload PDF ── */
+  .drop-area { border: 2px dashed var(--ink3); padding: 32px 24px; text-align: center; cursor: pointer; background: var(--paper); margin-bottom: 14px; transition: all 0.2s; }
+  .drop-area.tem-arquivo { border-color: var(--ink); background: var(--paper2); }
+  .drop-area p { font-size: 16px; font-weight: 700; margin-bottom: 4px; }
+  .drop-area small { font-family: var(--mono); font-size: 10px; color: var(--ink3); text-transform: uppercase; letter-spacing: 0.12em; }
+
+  /* ── Modos ── */
+  .modos { display: flex; gap: 8px; margin-bottom: 14px; }
+
+  /* ── Barra de progresso ── */
+  .progress-wrap { margin-bottom: 20px; border: 1px solid var(--ink); padding: 14px 16px; background: var(--paper2); }
+  .progress-label { font-family: var(--mono); font-size: 10px; text-transform: uppercase; letter-spacing: 0.15em; color: var(--ink3); margin-bottom: 8px; }
+  .progress-bar { height: 6px; background: var(--paper); border: 1px solid var(--ink3); overflow: hidden; margin-bottom: 8px; }
+  .progress-fill { height: 100%; background: var(--accent); transition: width 0.4s; }
+  .progress-fase { font-family: var(--mono); font-size: 11px; color: var(--ink2); }
+
+  /* ── Cards de resultado ── */
+  .card { border: 1px solid var(--ink); margin-bottom: 10px; }
+  .card-header { background: var(--ink); color: white; padding: 10px 14px; display: flex; justify-content: space-between; align-items: center; }
+  .card-header h3 { font-size: 15px; font-weight: 700; }
+  .card-body { padding: 14px; background: var(--paper); }
+  .flashcard { border: 1px solid var(--ink); margin-bottom: 8px; }
+  .fc-p { padding: 9px 13px; border-bottom: 1px dashed var(--ink3); display: flex; gap: 10px; }
+  .fc-r { padding: 9px 13px; display: flex; gap: 10px; }
+  .fc-label { font-family: var(--mono); font-size: 9px; font-weight: 700; min-width: 14px; }
+  .sub-tabs { display: flex; border-bottom: 1px solid var(--ink3); margin-bottom: 18px; }
+  .sub-tab { border: none; border-right: 1px solid var(--ink3); padding: 9px 14px; font-family: var(--mono); font-size: 9px; text-transform: uppercase; letter-spacing: 0.12em; cursor: pointer; background: transparent; color: var(--ink2); }
+  .sub-tab.ativo { background: var(--ink); color: white; }
+  .pre-code { background: #1a1814; color: #f5f1e8; padding: 14px; font-family: var(--mono); font-size: 11px; line-height: 1.65; overflow: auto; max-height: 480px; }
+  .exercicio { border: 1px solid var(--ink); margin-bottom: 14px; padding: 14px 16px; }
+  .exercicio .topico { font-family: var(--mono); font-size: 9px; color: var(--ink3); text-transform: uppercase; letter-spacing: 0.12em; margin-bottom: 6px; }
+  .exercicio .questao { font-size: 16px; font-weight: 700; margin-bottom: 10px; }
+  .opt { padding: 8px 12px; border: 1px solid var(--ink3); margin-bottom: 5px; font-size: 14px; display: flex; gap: 8px; }
+  .opt.correta { background: rgba(45,106,79,0.1); border-color: var(--green); }
+  .exercicio .exp { font-size: 13px; color: var(--ink2); font-style: italic; border-top: 1px dashed var(--ink3); padding-top: 8px; margin-top: 8px; }
+
+  /* ── Biblioteca ── */
+  .grupo-titulo { font-family: var(--mono); font-size: 9px; text-transform: uppercase; letter-spacing: 0.2em; color: var(--ink3); margin-bottom: 8px; padding-bottom: 6px; border-bottom: 1px solid var(--ink3); }
+  .disc-item { border: 1px solid var(--ink); border-left: 5px solid #888; margin-bottom: 8px; }
+  .disc-row { padding: 12px 14px; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .disc-info { display: flex; align-items: center; gap: 12px; flex: 1; }
+  .disc-sigla { font-family: var(--mono); font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; min-width: 44px; }
+  .disc-nome { font-size: 16px; font-weight: 700; }
+  .disc-meta { font-family: var(--mono); font-size: 9px; color: var(--ink3); }
+  .disc-btns { display: flex; gap: 6px; }
+
+  /* ── Footer ── */
+  footer { border-top: 1px solid var(--ink3); margin-top: 50px; padding-top: 14px; font-family: var(--mono); font-size: 9px; text-transform: uppercase; letter-spacing: 0.15em; color: var(--ink3); display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px; }
+
+  /* ── Spinner ── */
+  .spinner { width: 14px; height: 14px; border: 2px solid currentColor; border-top-color: transparent; border-radius: 50%; animation: spin 0.8s linear infinite; display: inline-block; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  @media (max-width: 600px) { .grid2 { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <!-- Header -->
+  <header>
+    <h1>INTENSUBE</h1>
+    <span>motor generativo · pdf → supabase</span>
+    <span id="badge-sb" class="badge-ok" style="display:none">● SUPABASE OK</span>
+  </header>
+
+  <!-- Tabs -->
+  <div class="tabs">
+    <button class="tab ativo" onclick="irPara('config')">⚙ Configuração</button>
+    <button class="tab" onclick="irPara('gerar')">⚡ Gerar</button>
+    <button class="tab" id="tab-resultado" onclick="irPara('resultado')" disabled>📄 Resultado</button>
+    <button class="tab" onclick="irPara('biblioteca')">🗄 Biblioteca</button>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- CONFIG                                                        -->
+  <!-- ============================================================ -->
+  <div id="secao-config" class="secao visivel">
+    <p class="label" style="margin-bottom:6px">passo 1</p>
+    <h2 style="font-size:32px;font-weight:700;letter-spacing:-0.02em;margin-bottom:8px">Ligar ao Supabase</h2>
+    <p style="font-size:15px;color:var(--ink2);line-height:1.5;margin-bottom:24px">
+      Cria um projeto gratuito em <strong>supabase.com</strong> e copia a URL e Anon Key em <strong>Project Settings → API Keys → Legacy → anon public</strong>.
+    </p>
+
+    <div class="campo">
+      <label class="label">Anthropic API Key</label>
+      <input id="ant-key" class="input" type="password" placeholder="sk-ant-api03-..." />
+      <div style="font-family:var(--mono);font-size:9px;color:var(--ink3);margin-top:4px">
+        Obtém em console.anthropic.com → API Keys. Guardada apenas localmente no teu browser.
+      </div>
+    </div>
+
+    <div class="campo">
+      <label class="label">Project URL</label>
+      <input id="sb-url" class="input" placeholder="https://xxxxxxxxxxxx.supabase.co" />
+    </div>
+    <div class="campo">
+      <label class="label">Anon Key</label>
+      <input id="sb-key" class="input" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." />
+    </div>
+
+    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:22px">
+      <button class="btn btn-primary" onclick="testarSB()">
+        <span id="sb-spinner" class="spinner" style="display:none"></span>
+        <span id="sb-btn-txt">🔌 Testar ligação</span>
+      </button>
+      <span id="sb-msg" class="ok-msg"></span>
+    </div>
+
+    <!-- SQL -->
+    <button class="acordeao-btn" onclick="toggleSQL()">
+      <span>🗄 SQL para criar a tabela (cola no Supabase SQL Editor)</span>
+      <span id="sql-seta">▼</span>
+    </button>
+    <div id="sql-corpo" class="acordeao-corpo">
+      <div style="display:flex;justify-content:flex-end;padding:8px 12px;border-bottom:1px dashed var(--ink3)">
+        <button class="btn" onclick="copiarSQL()">📋 <span id="btn-sql-txt">Copiar SQL</span></button>
+      </div>
+      <pre class="pre-code" id="sql-texto"></pre>
+    </div>
+
+    <div style="margin-top:20px;padding:14px 16px;background:var(--paper2);border:1px solid var(--ink3)">
+      <div class="label" style="margin-bottom:8px">guia rápido</div>
+      <div style="font-size:13.5px;color:var(--ink2);line-height:1.8">
+        1. supabase.com → New Project (gratuito)<br>
+        2. Project Settings → API Keys → Legacy → copia URL e anon key<br>
+        3. Cola aqui e clica Testar Ligação<br>
+        4. Se a tabela não existir, copia o SQL acima e executa no SQL Editor<br>
+        5. Pronto — vai para a aba Gerar
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- GERAR                                                         -->
+  <!-- ============================================================ -->
+  <div id="secao-gerar" class="secao">
+    <p class="label" style="margin-bottom:6px">passo 2 · 5 etapas sequenciais</p>
+    <h2 style="font-size:32px;font-weight:700;letter-spacing:-0.02em;margin-bottom:22px">Enviar plano de ensino</h2>
+
+    <div class="grid2" style="margin-bottom:18px">
+      <div>
+        <label class="label">Curso</label>
+        <input id="curso" class="input" value="ADS" placeholder="ex: ADS, Engenharia" />
+      </div>
+      <div>
+        <label class="label">Período</label>
+        <input id="periodo" class="input" value="1º Período" placeholder="ex: 1º Período" />
+      </div>
+    </div>
+
+    <!-- Modo de entrada -->
+    <div class="modos">
+      <button class="btn btn-primary" id="modo-pdf-btn" onclick="setModo('pdf')">📄 Upload PDF</button>
+      <button class="btn" id="modo-texto-btn" onclick="setModo('texto')">✏️ Colar Texto</button>
+    </div>
+
+    <div id="area-pdf">
+      <div class="drop-area" id="drop-area" onclick="document.getElementById('file-input').click()" ondrop="onDrop(event)" ondragover="event.preventDefault()">
+        <input type="file" id="file-input" accept=".pdf" style="display:none" onchange="onFileChange(event)" />
+        <p id="drop-txt">Arrasta o PDF ou clica para selecionar</p>
+        <small id="drop-sub">Plano de ensino, ementa ou programa</small>
+      </div>
+    </div>
+
+    <div id="area-texto" style="display:none">
+      <textarea id="texto-input" class="textarea" style="height:200px;margin-bottom:14px" placeholder="Cola aqui o texto do plano de ensino..."></textarea>
+    </div>
+
+    <div id="erro-gerar" class="erro" style="display:none">
+      <span id="erro-gerar-txt"></span>
+    </div>
+
+    <div id="progress-wrap" class="progress-wrap" style="display:none">
+      <div class="progress-label">gerando conteúdo</div>
+      <div class="progress-bar"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
+      <div class="progress-fase" id="progress-fase">A iniciar...</div>
+    </div>
+
+    <button class="btn btn-primary btn-full" id="btn-gerar" onclick="gerar()">
+      <span class="spinner" id="spinner-gerar" style="display:none"></span>
+      ⚡ Gerar conteúdo completo
+    </button>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- RESULTADO                                                     -->
+  <!-- ============================================================ -->
+  <div id="secao-resultado" class="secao">
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:18px;flex-wrap:wrap;gap:12px">
+      <div>
+        <p class="label" style="margin-bottom:4px">passo 3 · geração concluída</p>
+        <h2 id="res-titulo" style="font-size:28px;font-weight:700;letter-spacing:-0.02em;margin-bottom:4px"></h2>
+        <div id="res-meta" class="info-msg"></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:8px;align-items:flex-end">
+        <button class="btn btn-success" id="btn-salvar" onclick="salvar()">
+          <span class="spinner" id="spinner-salvar" style="display:none"></span>
+          🗄 Guardar no Supabase
+        </button>
+        <span id="salvar-msg" class="ok-msg"></span>
+        <div id="erro-salvar" class="info-msg" style="color:var(--red)"></div>
+      </div>
+    </div>
+
+    <div class="sub-tabs">
+      <button class="sub-tab ativo" onclick="irSubAba('json')">JSON</button>
+      <button class="sub-tab" onclick="irSubAba('flashcards')">Flashcards</button>
+      <button class="sub-tab" onclick="irSubAba('exercicios')">Exercícios</button>
+      <button class="sub-tab" onclick="irSubAba('video')">Vídeo</button>
+      <button class="sub-tab" onclick="irSubAba('podcast')">Podcast</button>
+    </div>
+
+    <div id="sub-json" class="sub-secao">
+      <div style="display:flex;justify-content:flex-end;margin-bottom:8px">
+        <button class="btn" onclick="copiarJSON()">📋 Copiar JSON</button>
+      </div>
+      <pre class="pre-code" id="json-output"></pre>
+    </div>
+    <div id="sub-flashcards" class="sub-secao" style="display:none"></div>
+    <div id="sub-exercicios" class="sub-secao" style="display:none"></div>
+    <div id="sub-video" class="sub-secao" style="display:none"></div>
+    <div id="sub-podcast" class="sub-secao" style="display:none"></div>
+
+    <div style="display:flex;gap:10px;margin-top:22px">
+      <button class="btn btn-ghost" onclick="novaGeracao()">↺ Nova disciplina</button>
+      <button class="btn" onclick="irPara('biblioteca')">🗄 Ver biblioteca</button>
+    </div>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- BIBLIOTECA                                                    -->
+  <!-- ============================================================ -->
+  <div id="secao-biblioteca" class="secao">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;flex-wrap:wrap;gap:12px">
+      <div>
+        <p class="label" style="margin-bottom:4px">base de dados · supabase</p>
+        <h2 style="font-size:30px;font-weight:700;letter-spacing:-0.02em">Biblioteca</h2>
+      </div>
+      <div style="display:flex;gap:8px">
+        <button class="btn" onclick="carregarBiblioteca()">↺ Atualizar</button>
+        <button class="btn btn-primary" onclick="irPara('gerar')">+ Nova disciplina</button>
+      </div>
+    </div>
+    <div id="biblioteca-corpo"></div>
+  </div>
+
+  <footer>
+    <span>Intensube · Motor Generativo</span>
+    <span id="footer-sb">○ Supabase desconectado</span>
+  </footer>
+</div>
+
+<script>
+// ============================================================
+// ESTADO
+// ============================================================
+let sbUrl = localStorage.getItem('ib_sb_url') || '';
+let sbKey = localStorage.getItem('ib_sb_key') || '';
+let sbOk  = false;
+let antKey = localStorage.getItem('ib_ant_key') || '';
+let pdfNome = null;
+let pdfB64 = null;
+let modoEntrada = 'pdf';
+let resultado = null;
+let gerandoAgora = false;
+
+// ============================================================
+// SQL
+// ============================================================
+const SQL = `CREATE TABLE IF NOT EXISTS disciplinas (
+  id        TEXT PRIMARY KEY,
+  sigla     TEXT NOT NULL,
+  nome      TEXT NOT NULL,
+  curso     TEXT NOT NULL DEFAULT 'Geral',
+  periodo   TEXT NOT NULL DEFAULT '1º Período',
+  cor       TEXT,
+  docente   TEXT,
+  ch        INTEGER,
+  json_data JSONB NOT NULL,
+  criado_em TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE disciplinas ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Leitura pública"  ON disciplinas FOR SELECT USING (true);
+CREATE POLICY "Escrita"          ON disciplinas FOR INSERT WITH CHECK (true);
+CREATE POLICY "Remoção"          ON disciplinas FOR DELETE USING (true);`;
+
+// ============================================================
+// PROMPTS
+// ============================================================
+const PROMPT_ESQUELETO = `Você é o motor generativo da Intensube. Recebe um plano de ensino e devolve APENAS o esqueleto estrutural.
+
+REGRAS:
+- Máximo 7 unidades (agrupe se necessário)
+- Máximo 5 tópicos por unidade
+- IDs: padrão disc-N-M (ex: calc-1-2)
+- Campo ausente no PDF → null
+
+SCHEMA:
+{
+  "disciplina": {
+    "id": "sigla_minuscula",
+    "nome": "Nome completo",
+    "sigla": "SIGLA",
+    "cor": "uma de: #d97757 | #8b6f4a | #3f5b7c | #2d6a4f | #7b4f8e | #b5461a",
+    "docente": "Nome ou null",
+    "ch": numero,
+    "unidades": [{"id":"disc-1","titulo":"Título","topicos":[{"id":"disc-1-1","nome":"Nome"}]}]
+  }
+}
+
+Resposta COMEÇA com { e TERMINA com }. ZERO texto fora do JSON. ZERO markdown.`;
+
+const PROMPT_RESUMO = `Você gera 1 resumo didático para a Intensube.
+
+TOM: De aluno para aluno. Direto, sem jargão.
+
+SCHEMA:
+{
+  "resumos": [{
+    "id": "id do tópico",
+    "resumo": "2 frases substanciais. Tom: aluno para aluno.",
+    "pontosChave": ["Afirmação 1", "Afirmação 2", "Afirmação 3"]
+  }]
+}
+
+Resposta COMEÇA com { e TERMINA com }. ZERO texto fora do JSON. ZERO markdown.`;
+
+const PROMPT_FLASH = `Você gera 1 flashcard para a Intensube.
+
+SCHEMA:
+{ "flashcards": [{ "f": "Pergunta direta?", "v": "Resposta em 1-2 frases." }] }
+
+Resposta COMEÇA com { e TERMINA com }. ZERO texto fora do JSON. ZERO markdown.`;
+
+const PROMPT_VIDEO = `Você gera 1 roteiro de vídeo de 3 min para a Intensube.
+
+TOM: Conversacional, como YouTuber. De aluno para aluno.
+Use APENAS aspas simples se precisar citar algo. NUNCA aspas duplas dentro do script.
+
+SCHEMA:
+{
+  "roteiro_video": [{
+    "unidade": "Título",
+    "duracao_alvo": "3 min",
+    "script": "Roteiro com [00:00]. Gancho, conceito, exemplo, fechamento. Sem aspas duplas."
+  }]
+}
+
+Resposta COMEÇA com { e TERMINA com }. ZERO texto fora do JSON. ZERO markdown.`;
+
+const PROMPT_PODCAST = `Você gera 1 script de podcast para a Intensube.
+
+TOM: Diálogo entre ALEX (curioso) e DANA (acessível). Começa direto.
+Use APENAS aspas simples se precisar citar algo. NUNCA aspas duplas dentro do script.
+
+SCHEMA:
+{
+  "podcast": [{
+    "unidade": "Título",
+    "formato": "diálogo",
+    "script": "ALEX e DANA dialogam. ~250 palavras. Sem aspas duplas."
+  }]
+}
+
+Resposta COMEÇA com { e TERMINA com }. ZERO texto fora do JSON. ZERO markdown.`;
+
+const PROMPT_EXERCICIO = `Você gera 1 exercício de múltipla escolha para a Intensube.
+
+SCHEMA:
+{
+  "exercicios": [{
+    "topico": "Nome do tópico",
+    "q": "Enunciado?",
+    "opts": ["A", "B", "C", "D"],
+    "correta": 0,
+    "exp": "Explicação do gabarito em 2 frases."
+  }]
+}
+
+Resposta COMEÇA com { e TERMINA com }. ZERO texto fora do JSON. ZERO markdown.`;
+
+// ============================================================
+// INIT
+// ============================================================
+window.onload = () => {
+  document.getElementById('ant-key').value = antKey;
+  document.getElementById('sb-url').value = sbUrl;
+  document.getElementById('sb-key').value = sbKey;
+  document.getElementById('sql-texto').textContent = SQL;
+  if (sbUrl && sbKey) autoConectar();
+};
+
+async function autoConectar() {
+  try {
+    const res = await sbFetch(`${sbUrl}/rest/v1/disciplinas?limit=1`, 'GET');
+    if (Array.isArray(res)) setSbOk(true);
+  } catch (_) {}
+}
+
+// ============================================================
+// NAVEGAÇÃO
+// ============================================================
+function irPara(id) {
+  document.querySelectorAll('.secao').forEach(s => s.classList.remove('visivel'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('ativo'));
+  document.getElementById('secao-' + id).classList.add('visivel');
+  const tabs = document.querySelectorAll('.tab');
+  const mapa = { config: 0, gerar: 1, resultado: 2, biblioteca: 3 };
+  if (mapa[id] !== undefined) tabs[mapa[id]].classList.add('ativo');
+  if (id === 'biblioteca') carregarBiblioteca();
+}
+
+function irSubAba(id) {
+  document.querySelectorAll('.sub-secao').forEach(s => s.style.display = 'none');
+  document.querySelectorAll('.sub-tab').forEach(t => t.classList.remove('ativo'));
+  document.getElementById('sub-' + id).style.display = 'block';
+  const idx = ['json','flashcards','exercicios','video','podcast'].indexOf(id);
+  document.querySelectorAll('.sub-tab')[idx].classList.add('ativo');
+}
+
+// ============================================================
+// SUPABASE
+// ============================================================
+async function sbFetch(url, method, body) {
+  const opts = {
+    method,
+    headers: {
+      'Content-Type': 'application/json',
+      'apikey': sbKey,
+      'Authorization': `Bearer ${sbKey}`,
+      'Prefer': method === 'POST' ? 'return=representation' : ''
+    }
+  };
+  if (body) opts.body = JSON.stringify(body);
+  const r = await fetch(url, opts);
+  return r.json();
+}
+
+function setSbOk(ok) {
+  sbOk = ok;
+  document.getElementById('badge-sb').style.display = ok ? 'inline' : 'none';
+  document.getElementById('footer-sb').textContent = ok ? '● Supabase conectado' : '○ Supabase desconectado';
+}
+
+async function testarSB() {
+  antKey = document.getElementById('ant-key').value.trim();
+  sbUrl  = document.getElementById('sb-url').value.trim();
+  sbKey  = document.getElementById('sb-key').value.trim();
+  const msg = document.getElementById('sb-msg');
+  const spinner = document.getElementById('sb-spinner');
+  const btnTxt = document.getElementById('sb-btn-txt');
+
+  if (!sbUrl || !sbKey) { msg.textContent = 'Preenche os dois campos.'; msg.style.color = 'var(--red)'; return; }
+  spinner.style.display = 'inline-block'; btnTxt.textContent = 'A testar...'; msg.textContent = '';
+
+  try {
+    const res = await sbFetch(`${sbUrl}/rest/v1/disciplinas?limit=1`, 'GET');
+    if (Array.isArray(res)) {
+      localStorage.setItem('ib_ant_key', antKey);
+      localStorage.setItem('ib_sb_url', sbUrl);
+      localStorage.setItem('ib_sb_key', sbKey);
+      setSbOk(true);
+      msg.textContent = '✓ Ligação ok! Tabela encontrada.'; msg.style.color = 'var(--green)';
+    } else if (res?.code === '42P01') {
+      msg.textContent = '⚠ Ligação ok, mas cria a tabela com o SQL abaixo.'; msg.style.color = 'var(--accent)';
+    } else {
+      msg.textContent = 'Erro: ' + JSON.stringify(res).slice(0, 120); msg.style.color = 'var(--red)';
+    }
+  } catch (e) { msg.textContent = 'Erro: ' + e.message; msg.style.color = 'var(--red)'; }
+
+  spinner.style.display = 'none'; btnTxt.textContent = '🔌 Testar ligação';
+}
+
+// ============================================================
+// SQL ACORDEÃO
+// ============================================================
+function toggleSQL() {
+  const corpo = document.getElementById('sql-corpo');
+  const seta  = document.getElementById('sql-seta');
+  const aberto = corpo.classList.toggle('aberto');
+  seta.textContent = aberto ? '▲' : '▼';
+}
+
+function copiarSQL() {
+  navigator.clipboard.writeText(SQL);
+  document.getElementById('btn-sql-txt').textContent = 'Copiado!';
+  setTimeout(() => document.getElementById('btn-sql-txt').textContent = 'Copiar SQL', 2000);
+}
+
+// ============================================================
+// UPLOAD
+// ============================================================
+function setModo(m) {
+  modoEntrada = m;
+  document.getElementById('area-pdf').style.display    = m === 'pdf' ? 'block' : 'none';
+  document.getElementById('area-texto').style.display  = m === 'texto' ? 'block' : 'none';
+  document.getElementById('modo-pdf-btn').className    = m === 'pdf' ? 'btn btn-primary' : 'btn';
+  document.getElementById('modo-texto-btn').className  = m === 'texto' ? 'btn btn-primary' : 'btn';
+}
+
+function onDrop(e) {
+  e.preventDefault();
+  processarPDF(e.dataTransfer.files[0]);
+}
+
+function onFileChange(e) { processarPDF(e.target.files[0]); }
+
+function processarPDF(file) {
+  if (!file || file.type !== 'application/pdf') { mostrarErroGerar('Ficheiro inválido. Usa um PDF.'); return; }
+  pdfNome = file.name;
+  const reader = new FileReader();
+  reader.onload = e => {
+    pdfB64 = e.target.result.split(',')[1];
+    document.getElementById('drop-area').classList.add('tem-arquivo');
+    document.getElementById('drop-txt').textContent = '✓ ' + pdfNome;
+    document.getElementById('drop-sub').textContent = 'Clica para substituir';
+  };
+  reader.readAsDataURL(file);
+}
+
+// ============================================================
+// API HELPER
+// ============================================================
+async function chamarAPI(systemPrompt, userContent, maxTokens) {
+  if (!antKey) throw new Error('API Key da Anthropic não configurada. Vai à aba Configuração.');
+  const res = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': antKey,
+      'anthropic-version': '2023-06-01',
+      'anthropic-dangerous-direct-browser-access': 'true'
+    },
+    body: JSON.stringify({
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: maxTokens,
+      system: systemPrompt,
+      messages: [{ role: 'user', content: userContent }]
+    })
+  });
+  const data = await res.json();
+  if (data.error) throw new Error(`API: ${data.error.type} — ${data.error.message}`);
+  if (!data.content?.length) throw new Error(`Resposta vazia. Stop: ${data.stop_reason}`);
+
+  const txt = data.content.find(b => b.type === 'text')?.text || '';
+  const limpo = txt.replace(/```json\n?/gi, '').replace(/```\n?/g, '').trim();
+  const match = limpo.match(/\{[\s\S]*\}/);
+  if (!match) throw new Error(`Sem JSON. Início: "${txt.slice(0,150)}"`);
+
+  // 3 tentativas de parse
+  try { return JSON.parse(match[0]); } catch (_) {}
+  try {
+    const r = match[0].replace(/"((?:[^"\\]|\\.)*)"/g, (_, s) =>
+      '"' + s.replace(/\n/g,'\\n').replace(/\r/g,'\\r').replace(/\t/g,'\\t') + '"'
+    );
+    return JSON.parse(r);
+  } catch (_) {}
+  try {
+    return JSON.parse(match[0].replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, ' '));
+  } catch (e) {
+    throw new Error(`JSON inválido após 3 reparos: ${e.message}`);
+  }
+}
+
+// ============================================================
+// GERAR
+// ============================================================
+let totalPassos = 0;
+let passoAtual  = 0;
+
+function setFase(txt) {
+  document.getElementById('progress-fase').textContent = txt;
+  passoAtual++;
+  document.getElementById('progress-fill').style.width = Math.min(100, Math.round((passoAtual / totalPassos) * 100)) + '%';
+}
+
+function mostrarErroGerar(msg) {
+  const el = document.getElementById('erro-gerar');
+  document.getElementById('erro-gerar-txt').textContent = msg;
+  el.style.display = 'flex';
+}
+
+async function gerar() {
+  if (gerandoAgora) return;
+
+  const temEntrada = modoEntrada === 'pdf' ? pdfB64 : document.getElementById('texto-input').value.trim().length > 50;
+  if (!temEntrada) { mostrarErroGerar(modoEntrada === 'pdf' ? 'Faz upload de um PDF.' : 'Cola o texto do plano (mín. 50 caracteres).'); return; }
+
+  gerandoAgora = true;
+  document.getElementById('erro-gerar').style.display = 'none';
+  document.getElementById('progress-wrap').style.display = 'block';
+  document.getElementById('spinner-gerar').style.display = 'inline-block';
+  document.getElementById('btn-gerar').disabled = true;
+  passoAtual = 0;
+
+  try {
+    const conteudo = modoEntrada === 'pdf'
+      ? [{ type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: pdfB64 } }, { type: 'text', text: 'Processa este plano de ensino conforme instruído.' }]
+      : [{ type: 'text', text: `Plano de ensino:\n\n${document.getElementById('texto-input').value}\n\nProcessa conforme instruído.` }];
+
+    // Chamada 1: esqueleto
+    setFase('Extraindo estrutura...');
+    document.getElementById('progress-fill').style.width = '5%';
+    const r1 = await chamarAPI(PROMPT_ESQUELETO, conteudo, 4000);
+    if (!r1.disciplina) throw new Error('Estrutura não retornada.');
+
+    const topicos = r1.disciplina.unidades.flatMap(u =>
+      u.topicos.map(t => ({ id: t.id, nome: t.nome, unidade: u.titulo }))
+    );
+    const unidades = r1.disciplina.unidades.map(u => ({
+      titulo: u.titulo, topicos: u.topicos.map(t => t.nome).join(', ')
+    }));
+
+    totalPassos = 1 + topicos.length * 3 + unidades.length * 2;
+
+    // Chamada 2: resumos
+    const mapa = {};
+    for (let i = 0; i < topicos.length; i++) {
+      const t = topicos[i];
+      setFase(`Resumos... ${i+1}/${topicos.length}`);
+      const r = await chamarAPI(PROMPT_RESUMO,
+        [{ type:'text', text:`Tópico: "${t.nome}" | Unidade: "${t.unidade}" | Disciplina: "${r1.disciplina.nome}"\nGera 1 resumo. id="${t.id}"` }], 800);
+      (r.resumos || []).forEach(x => { mapa[x.id] = x; });
+    }
+
+    const disciplinaFinal = {
+      ...r1.disciplina,
+      unidades: r1.disciplina.unidades.map(u => ({
+        ...u, topicos: u.topicos.map(t => ({
+          ...t,
+          resumo: mapa[t.id]?.resumo || '',
+          pontosChave: mapa[t.id]?.pontosChave || []
+        }))
+      }))
+    };
+
+    // Chamada 3: flashcards
+    const flashcards = [];
+    for (let i = 0; i < topicos.length; i++) {
+      const t = topicos[i];
+      setFase(`Flashcards... ${i+1}/${topicos.length}`);
+      const r = await chamarAPI(PROMPT_FLASH,
+        [{ type:'text', text:`Tópico: "${t.nome}" | Unidade: "${t.unidade}" | Disciplina: "${r1.disciplina.nome}"` }], 500);
+      flashcards.push(...(r.flashcards || []));
+    }
+
+    // Chamada 4a: roteiros
+    const roteiros = [];
+    for (let i = 0; i < unidades.length; i++) {
+      const u = unidades[i];
+      setFase(`Roteiros... ${i+1}/${unidades.length}`);
+      const r = await chamarAPI(PROMPT_VIDEO,
+        [{ type:'text', text:`Disciplina: "${disciplinaFinal.nome}"\nUnidade: "${u.titulo}"\nTópicos: ${u.topicos}` }], 2000);
+      roteiros.push(...(r.roteiro_video || []));
+    }
+
+    // Chamada 4b: podcasts
+    const podcasts = [];
+    for (let i = 0; i < unidades.length; i++) {
+      const u = unidades[i];
+      setFase(`Podcasts... ${i+1}/${unidades.length}`);
+      const r = await chamarAPI(PROMPT_PODCAST,
+        [{ type:'text', text:`Disciplina: "${disciplinaFinal.nome}"\nUnidade: "${u.titulo}"\nTópicos: ${u.topicos}` }], 2000);
+      podcasts.push(...(r.podcast || []));
+    }
+
+    // Chamada 5: exercícios
+    const exercicios = [];
+    for (let i = 0; i < topicos.length; i++) {
+      const t = topicos[i];
+      setFase(`Exercícios... ${i+1}/${topicos.length}`);
+      const r = await chamarAPI(PROMPT_EXERCICIO,
+        [{ type:'text', text:`Tópico: "${t.nome}" | Disciplina: "${disciplinaFinal.nome}"` }], 800);
+      exercicios.push(...(r.exercicios || []));
+    }
+
+    resultado = { disciplina: disciplinaFinal, flashcards, roteiro_video: roteiros, podcast: podcasts, exercicios };
+    renderResultado();
+    document.getElementById('tab-resultado').disabled = false;
+    irPara('resultado');
+
+  } catch(e) {
+    mostrarErroGerar('Erro: ' + e.message);
+  } finally {
+    gerandoAgora = false;
+    document.getElementById('spinner-gerar').style.display = 'none';
+    document.getElementById('btn-gerar').disabled = false;
+    document.getElementById('progress-wrap').style.display = 'none';
+  }
+}
+
+// ============================================================
+// RENDERIZAR RESULTADO
+// ============================================================
+function renderResultado() {
+  const d = resultado.disciplina;
+  const nTopicos = d.unidades.reduce((a, u) => a + u.topicos.length, 0);
+
+  document.getElementById('res-titulo').textContent = d.nome;
+  document.getElementById('res-meta').textContent =
+    `${d.unidades.length} unidades · ${nTopicos} tópicos · ${resultado.flashcards.length} flashcards · ${resultado.exercicios.length} exercícios`;
+
+  // JSON
+  document.getElementById('json-output').textContent = JSON.stringify(d, null, 2);
+
+  // Flashcards
+  const fcEl = document.getElementById('sub-flashcards');
+  fcEl.innerHTML = resultado.flashcards.map(fc => `
+    <div class="flashcard">
+      <div class="fc-p"><span class="fc-label" style="color:var(--accent)">P</span><strong>${esc(fc.f)}</strong></div>
+      <div class="fc-r"><span class="fc-label" style="color:var(--ink3)">R</span><span>${esc(fc.v)}</span></div>
+    </div>`).join('');
+
+  // Exercícios
+  const exEl = document.getElementById('sub-exercicios');
+  exEl.innerHTML = resultado.exercicios.map(ex => `
+    <div class="exercicio">
+      ${ex.topico ? `<div class="topico">${esc(ex.topico)}</div>` : ''}
+      <div class="questao">${esc(ex.q)}</div>
+      ${(ex.opts||[]).map((o,i) => `
+        <div class="opt ${i===ex.correta?'correta':''}">
+          <span style="font-family:var(--mono);font-size:9px;opacity:0.5">${String.fromCharCode(65+i)}</span>
+          ${esc(o)}
+          ${i===ex.correta?'<span style="margin-left:auto;color:var(--green)">✓</span>':''}
+        </div>`).join('')}
+      ${ex.exp ? `<div class="exp">${esc(ex.exp)}</div>` : ''}
+    </div>`).join('');
+
+  // Vídeo
+  document.getElementById('sub-video').innerHTML = resultado.roteiro_video.map((r,i) => `
+    <div class="card" style="margin-bottom:16px">
+      <div class="card-header">
+        <h3>${esc(r.unidade)}</h3>
+        <button class="btn" style="background:transparent;border:1px solid rgba(255,255,255,0.3);color:white" onclick="copiarTexto('vid-${i}')">📋 Copiar</button>
+      </div>
+      <pre class="card-body" id="vid-${i}" style="font-family:var(--mono);font-size:11.5px;line-height:1.7">${esc(r.script)}</pre>
+    </div>`).join('');
+
+  // Podcast
+  document.getElementById('sub-podcast').innerHTML = resultado.podcast.map((p,i) => `
+    <div class="card" style="margin-bottom:16px">
+      <div class="card-header">
+        <h3>${esc(p.unidade)}</h3>
+        <button class="btn" style="background:transparent;border:1px solid rgba(255,255,255,0.3);color:white" onclick="copiarTexto('pod-${i}')">📋 Copiar</button>
+      </div>
+      <pre class="card-body" id="pod-${i}" style="font-family:var(--mono);font-size:11.5px;line-height:1.7">${esc(p.script)}</pre>
+    </div>`).join('');
+}
+
+function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+function copiarJSON() {
+  navigator.clipboard.writeText(JSON.stringify(resultado.disciplina, null, 2));
+}
+
+function copiarTexto(id) {
+  navigator.clipboard.writeText(document.getElementById(id).textContent);
+}
+
+// ============================================================
+// SALVAR NO SUPABASE
+// ============================================================
+async function salvar() {
+  if (!resultado || !sbOk) {
+    document.getElementById('erro-salvar').textContent = '⚠ Configura e testa a ligação ao Supabase primeiro.';
+    return;
+  }
+  const spinner = document.getElementById('spinner-salvar');
+  const msg     = document.getElementById('salvar-msg');
+  const erroEl  = document.getElementById('erro-salvar');
+  spinner.style.display = 'inline-block';
+  document.getElementById('btn-salvar').disabled = true;
+  msg.textContent = '';
+  erroEl.textContent = '';
+
+  try {
+    const d = resultado.disciplina;
+    const res = await sbFetch(`${sbUrl}/rest/v1/disciplinas`, 'POST', {
+      id: d.id, sigla: d.sigla, nome: d.nome,
+      curso:   document.getElementById('curso').value,
+      periodo: document.getElementById('periodo').value,
+      cor: d.cor, docente: d.docente, ch: d.ch,
+      json_data: resultado
+    });
+    if (Array.isArray(res) || res?.id) {
+      msg.textContent = '✓ Guardado com sucesso!';
+    } else if (res?.code === '23505') {
+      erroEl.textContent = 'Disciplina com este ID já existe.';
+    } else {
+      erroEl.textContent = 'Erro: ' + JSON.stringify(res).slice(0, 200);
+    }
+  } catch(e) {
+    erroEl.textContent = 'Erro: ' + e.message;
+  } finally {
+    spinner.style.display = 'none';
+    document.getElementById('btn-salvar').disabled = false;
+  }
+}
+
+// ============================================================
+// BIBLIOTECA
+// ============================================================
+async function carregarBiblioteca() {
+  const corpo = document.getElementById('biblioteca-corpo');
+  if (!sbOk) { corpo.innerHTML = '<p style="font-size:15px;color:var(--ink2)">Configura o Supabase na aba Configuração.</p>'; return; }
+  corpo.innerHTML = '<p class="info-msg">A carregar...</p>';
+  try {
+    const lista = await sbFetch(`${sbUrl}/rest/v1/disciplinas?select=id,sigla,nome,curso,periodo,cor,docente,ch,criado_em&order=criado_em.desc`, 'GET');
+    if (!Array.isArray(lista) || lista.length === 0) {
+      corpo.innerHTML = '<p style="font-size:15px;color:var(--ink2);text-align:center;padding:32px">Nenhuma disciplina ainda.</p>'; return;
+    }
+    const grupos = {};
+    lista.forEach(d => {
+      const k = `${d.curso} · ${d.periodo}`;
+      if (!grupos[k]) grupos[k] = [];
+      grupos[k].push(d);
+    });
+    corpo.innerHTML = Object.entries(grupos).map(([grupo, discs]) => `
+      <div style="margin-bottom:24px">
+        <div class="grupo-titulo">${grupo} · ${discs.length} disciplina${discs.length!==1?'s':''}</div>
+        ${discs.map(d => `
+          <div class="disc-item" style="border-left-color:${d.cor||'#888'}">
+            <div class="disc-row">
+              <div class="disc-info">
+                <span class="disc-sigla" style="color:${d.cor||'#888'}">${d.sigla}</span>
+                <span class="disc-nome">${d.nome}</span>
+                ${d.docente ? `<span class="disc-meta">${d.docente}</span>` : ''}
+                ${d.ch ? `<span class="disc-meta">${d.ch}h</span>` : ''}
+              </div>
+              <div class="disc-btns">
+                <button class="btn" onclick="eliminar('${d.id}')">🗑</button>
+              </div>
+            </div>
+          </div>`).join('')}
+      </div>`).join('');
+  } catch(e) {
+    corpo.innerHTML = `<p style="color:var(--red);font-family:var(--mono);font-size:11px">Erro: ${e.message}</p>`;
+  }
+}
+
+async function eliminar(id) {
+  if (!confirm(`Eliminar "${id}" permanentemente?`)) return;
+  await sbFetch(`${sbUrl}/rest/v1/disciplinas?id=eq.${id}`, 'DELETE');
+  carregarBiblioteca();
+}
+
+function novaGeracao() {
+  resultado = null;
+  pdfB64 = null;
+  pdfNome = null;
+  document.getElementById('drop-area').classList.remove('tem-arquivo');
+  document.getElementById('drop-txt').textContent = 'Arrasta o PDF ou clica para selecionar';
+  document.getElementById('drop-sub').textContent = 'Plano de ensino, ementa ou programa';
+  document.getElementById('texto-input').value = '';
+  document.getElementById('tab-resultado').disabled = true;
+  document.getElementById('erro-gerar').style.display = 'none';
+  document.getElementById('salvar-msg').textContent = '';
+  document.getElementById('erro-salvar').textContent = '';
+  irPara('gerar');
+}
+</script>
+</body>
+</html>
