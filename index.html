@@ -122,6 +122,41 @@
   .spinner { width: 14px; height: 14px; border: 2px solid currentColor; border-top-color: transparent; border-radius: 50%; animation: spin 0.8s linear infinite; display: inline-block; }
   @keyframes spin { to { transform: rotate(360deg); } }
 
+  /* ── Modal de expansão ── */
+  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(26,24,20,0.6); z-index: 100; align-items: center; justify-content: center; padding: 20px; }
+  .modal-overlay.on { display: flex; }
+  .modal-box { background: var(--paper); border: 2px solid var(--ink); padding: 24px 26px; width: 100%; max-width: 520px; max-height: 90vh; overflow-y: auto; }
+  .modal-head { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 18px; padding-bottom: 14px; border-bottom: 1px solid var(--ink3); }
+  .modal-head h3 { font-size: 20px; font-weight: 700; letter-spacing: -0.01em; line-height: 1.2; margin-bottom: 4px; }
+  .modal-head .sub { font-family: var(--mono); font-size: 10px; color: var(--ink3); text-transform: uppercase; letter-spacing: 0.12em; }
+  .modal-x { background: none; border: none; font-size: 14px; color: var(--ink3); cursor: pointer; padding: 4px; }
+  .modal-x:hover { color: var(--ink); }
+
+  .exp-row { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px dashed var(--ink3); gap: 12px; }
+  .exp-row:last-child { border-bottom: none; }
+  .exp-info { flex: 1; }
+  .exp-nome { font-size: 14px; font-weight: 700; margin-bottom: 2px; }
+  .exp-status { font-family: var(--mono); font-size: 10px; color: var(--ink3); letter-spacing: 0.06em; }
+  .exp-status.cheio { color: var(--green); }
+  .exp-status.vazio { color: var(--accent); }
+  .exp-action { display: flex; gap: 6px; align-items: center; }
+  .btn-exp { padding: 7px 12px; font-family: var(--mono); font-size: 9px; text-transform: uppercase; letter-spacing: 0.1em; border: 1px solid var(--ink); background: transparent; color: var(--ink); cursor: pointer; transition: all 0.15s; }
+  .btn-exp:hover:not(:disabled) { background: var(--ink); color: white; }
+  .btn-exp.gerar { background: var(--ink); color: white; }
+  .btn-exp.gerar:hover:not(:disabled) { background: var(--accent); border-color: var(--accent); }
+  .btn-exp:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  .modal-foot { margin-top: 18px; padding-top: 14px; border-top: 2px solid var(--ink); display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+  .exp-progress { font-family: var(--mono); font-size: 10px; color: var(--ink3); letter-spacing: 0.08em; flex: 1; }
+  .exp-progress.ativo { color: var(--accent); }
+
+  .btn-tudo { padding: 10px 16px; background: var(--accent); color: white; border: 1px solid var(--accent); font-family: var(--mono); font-size: 10px; text-transform: uppercase; letter-spacing: 0.12em; cursor: pointer; display: inline-flex; align-items: center; gap: 7px; }
+  .btn-tudo:hover:not(:disabled) { background: var(--ink); border-color: var(--ink); }
+  .btn-tudo:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  .btn-expandir { padding: 5px 10px; background: transparent; border: 1px solid var(--ink3); color: var(--ink2); font-family: var(--mono); font-size: 9px; text-transform: uppercase; letter-spacing: 0.1em; cursor: pointer; transition: all 0.15s; }
+  .btn-expandir:hover { background: var(--accent); color: white; border-color: var(--accent); }
+
   @media (max-width: 600px) { .grid2 { grid-template-columns: 1fr; } }
 </style>
 </head>
@@ -206,19 +241,22 @@
   <!-- GERAR                                                         -->
   <!-- ============================================================ -->
   <div id="secao-gerar" class="secao">
-    <p class="label" style="margin-bottom:6px">passo 2 · 5 etapas sequenciais</p>
-    <h2 style="font-size:32px;font-weight:700;letter-spacing:-0.02em;margin-bottom:22px">Enviar plano de ensino</h2>
+    <p class="label" style="margin-bottom:6px">passo 2 · enviar matéria</p>
+    <h2 style="font-size:32px;font-weight:700;letter-spacing:-0.02em;margin-bottom:22px">Cadastrar nova matéria</h2>
 
     <div class="grid2" style="margin-bottom:18px">
       <div>
-        <label class="label">Curso</label>
-        <input id="curso" class="input" value="ADS" placeholder="ex: ADS, Engenharia" />
+        <label class="label">Curso (opcional)</label>
+        <input id="curso" class="input" placeholder="ex: ADM, Medicina, Engenharia" />
       </div>
       <div>
-        <label class="label">Período</label>
-        <input id="periodo" class="input" value="1º Período" placeholder="ex: 1º Período" />
+        <label class="label">Período (opcional)</label>
+        <input id="periodo" class="input" placeholder="deixe em branco se não souber" />
       </div>
     </div>
+    <p style="font-size:13px;color:var(--ink3);margin-bottom:18px;line-height:1.5;font-style:italic">
+      Curso e período são opcionais — a matéria é catalogada por área de conhecimento, não por currículo específico. Útil para a mesma matéria atender alunos de várias faculdades.
+    </p>
 
     <!-- Modo de entrada -->
     <div class="modos">
@@ -248,10 +286,24 @@
       <div class="progress-fase" id="progress-fase">A iniciar...</div>
     </div>
 
-    <button class="btn btn-primary btn-full" id="btn-gerar" onclick="gerar()">
-      <span class="spinner" id="spinner-gerar" style="display:none"></span>
-      ⚡ Gerar conteúdo completo
-    </button>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:6px">
+      <button class="btn btn-primary btn-full" id="btn-gerar-esq" onclick="gerar('estrutura')" style="background:var(--ink);color:white;font-size:12px">
+        <span class="spinner" id="spinner-esq" style="display:none"></span>
+        🧱 Só estrutura
+      </button>
+      <button class="btn btn-primary btn-full" id="btn-gerar" onclick="gerar('completo')" style="font-size:12px">
+        <span class="spinner" id="spinner-gerar" style="display:none"></span>
+        ⚡ Geração completa
+      </button>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:8px">
+      <small style="font-family:var(--mono);font-size:9px;color:var(--ink3);text-align:center;line-height:1.5">
+        Rápido · ~30s · 1 chamada<br>Apenas unidades e tópicos
+      </small>
+      <small style="font-family:var(--mono);font-size:9px;color:var(--ink3);text-align:center;line-height:1.5">
+        Completo · ~10min · muitas chamadas<br>Resumos, flashcards, exercícios, etc
+      </small>
+    </div>
   </div>
 
   <!-- ============================================================ -->
@@ -322,6 +374,33 @@
   </footer>
 </div>
 
+<!-- ============================================================ -->
+<!-- MODAL: EXPANDIR MATÉRIA                                      -->
+<!-- ============================================================ -->
+<div class="modal-overlay" id="modal-exp">
+  <div class="modal-box">
+    <div class="modal-head">
+      <div>
+        <h3 id="exp-titulo">Expandir matéria</h3>
+        <div class="sub" id="exp-subtitulo"></div>
+      </div>
+      <button class="modal-x" onclick="fecharExpandir()">✕</button>
+    </div>
+
+    <div id="exp-corpo"></div>
+
+    <div class="modal-foot">
+      <div class="exp-progress" id="exp-progress"></div>
+      <button class="btn-tudo" id="btn-exp-tudo" onclick="expandirTudo()">
+        <span class="spinner" id="spinner-exp-tudo" style="display:none;width:11px;height:11px"></span>
+        ⚡ Gerar tudo o que falta
+      </button>
+    </div>
+
+    <div id="exp-erro" style="margin-top:10px;font-family:var(--mono);font-size:10px;color:var(--red);display:none"></div>
+  </div>
+</div>
+
 <script>
 // ============================================================
 // ESTADO
@@ -343,8 +422,8 @@ const SQL = `CREATE TABLE IF NOT EXISTS disciplinas (
   id        TEXT PRIMARY KEY,
   sigla     TEXT NOT NULL,
   nome      TEXT NOT NULL,
-  curso     TEXT NOT NULL DEFAULT 'Geral',
-  periodo   TEXT NOT NULL DEFAULT '1º Período',
+  curso     TEXT,
+  periodo   TEXT,
   cor       TEXT,
   docente   TEXT,
   ch        INTEGER,
@@ -531,7 +610,14 @@ async function sbFetch(url, method, body) {
   };
   if (body) opts.body = JSON.stringify(body);
   const r = await fetch(url, opts);
-  return r.json();
+  // PATCH/DELETE podem retornar 204 sem corpo
+  const txt = await r.text();
+  if (!txt) {
+    if (!r.ok) return { code: r.status, message: 'HTTP ' + r.status };
+    return [];
+  }
+  try { return JSON.parse(txt); }
+  catch { return { code: r.status, message: txt.slice(0, 200) }; }
 }
 
 function setSbOk(ok) {
@@ -678,7 +764,7 @@ function mostrarErroGerar(msg) {
   el.style.display = 'flex';
 }
 
-async function gerar() {
+async function gerar(modo = 'completo') {
   if (gerandoAgora) return;
 
   const temEntrada = modoEntrada === 'pdf' ? pdfB64 : document.getElementById('texto-input').value.trim().length > 50;
@@ -687,8 +773,10 @@ async function gerar() {
   gerandoAgora = true;
   document.getElementById('erro-gerar').style.display = 'none';
   document.getElementById('progress-wrap').style.display = 'block';
-  document.getElementById('spinner-gerar').style.display = 'inline-block';
+  const spinnerEl = modo === 'estrutura' ? document.getElementById('spinner-esq') : document.getElementById('spinner-gerar');
+  spinnerEl.style.display = 'inline-block';
   document.getElementById('btn-gerar').disabled = true;
+  document.getElementById('btn-gerar-esq').disabled = true;
   passoAtual = 0;
 
   try {
@@ -696,9 +784,10 @@ async function gerar() {
       ? [{ type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: pdfB64 } }, { type: 'text', text: 'Processa este plano de ensino conforme instruído.' }]
       : [{ type: 'text', text: `Plano de ensino:\n\n${document.getElementById('texto-input').value}\n\nProcessa conforme instruído.` }];
 
-    // Chamada 1: esqueleto
+    // Chamada 1: esqueleto (sempre executa)
+    totalPassos = modo === 'estrutura' ? 1 : 99; // estimativa, recalcula depois
     setFase('Extraindo estrutura...');
-    document.getElementById('progress-fill').style.width = '5%';
+    document.getElementById('progress-fill').style.width = '10%';
     const r1 = await chamarAPI(PROMPT_ESQUELETO, conteudo, 4000);
     if (!r1.disciplina) throw new Error('Estrutura não retornada.');
 
@@ -709,6 +798,39 @@ async function gerar() {
       titulo: u.titulo, topicos: u.topicos.map(t => t.nome).join(', ')
     }));
 
+    // ============================================
+    // MODO "ESTRUTURA": só salva o esqueleto
+    // ============================================
+    if (modo === 'estrutura') {
+      document.getElementById('progress-fill').style.width = '100%';
+      setFase('Estrutura pronta!');
+
+      // Disciplina apenas com unidades e tópicos vazios (sem resumos/pontos-chave)
+      const disciplinaEsqueleto = {
+        ...r1.disciplina,
+        unidades: r1.disciplina.unidades.map(u => ({
+          ...u, topicos: u.topicos.map(t => ({
+            ...t, resumo: '', pontosChave: []
+          }))
+        }))
+      };
+
+      resultado = {
+        disciplina: disciplinaEsqueleto,
+        flashcards: [],
+        roteiro_video: [],
+        podcast: [],
+        exercicios: []
+      };
+      renderResultado();
+      document.getElementById('tab-resultado').disabled = false;
+      irPara('resultado');
+      return;
+    }
+
+    // ============================================
+    // MODO "COMPLETO": gera tudo
+    // ============================================
     totalPassos = 1 + topicos.length * 3 + unidades.length * 2;
 
     // Chamada 2: resumos
@@ -782,7 +904,9 @@ async function gerar() {
   } finally {
     gerandoAgora = false;
     document.getElementById('spinner-gerar').style.display = 'none';
+    document.getElementById('spinner-esq').style.display = 'none';
     document.getElementById('btn-gerar').disabled = false;
+    document.getElementById('btn-gerar-esq').disabled = false;
     document.getElementById('progress-wrap').style.display = 'none';
   }
 }
@@ -873,10 +997,12 @@ async function salvar() {
 
   try {
     const d = resultado.disciplina;
+    const cursoVal = document.getElementById('curso').value.trim();
+    const periodoVal = document.getElementById('periodo').value.trim();
     const res = await sbFetch(`${sbUrl}/rest/v1/disciplinas`, 'POST', {
       id: d.id, sigla: d.sigla, nome: d.nome,
-      curso:   document.getElementById('curso').value,
-      periodo: document.getElementById('periodo').value,
+      curso:   cursoVal || null,
+      periodo: periodoVal || null,
       cor: d.cor, docente: d.docente, ch: d.ch,
       json_data: resultado
     });
@@ -907,32 +1033,358 @@ async function carregarBiblioteca() {
     if (!Array.isArray(lista) || lista.length === 0) {
       corpo.innerHTML = '<p style="font-size:15px;color:var(--ink2);text-align:center;padding:32px">Nenhuma disciplina ainda.</p>'; return;
     }
+    // Mapeamento de cor → área de conhecimento (usado pra agrupar)
+    const corParaArea = {
+      '#d97757': 'Saúde',
+      '#b54545': 'Saúde',
+      '#b5461a': 'Saúde',
+      '#3f5b7c': 'Exatas',
+      '#2c5b8a': 'Exatas',
+      '#7b4f8e': 'Tecnologia',
+      '#7e4a6e': 'Tecnologia',
+      '#8b6f4a': 'Humanas',
+      '#c47b1a': 'Humanas',
+      '#b48a2c': 'Humanas',
+      '#2d6a4f': 'Biológicas',
+      '#6b7042': 'Biológicas',
+      '#2d6a6e': 'Negócios',
+      '#7a5a35': 'Negócios'
+    };
+    const areaDe = (d) => corParaArea[d.cor] || 'Outras';
+
+    // Agrupa por área. Dentro de cada área, mostra também o curso (se houver) como subinfo
     const grupos = {};
     lista.forEach(d => {
-      const k = `${d.curso} · ${d.periodo}`;
+      const k = areaDe(d);
       if (!grupos[k]) grupos[k] = [];
       grupos[k].push(d);
     });
-    corpo.innerHTML = Object.entries(grupos).map(([grupo, discs]) => `
+
+    // Ordem fixa de áreas
+    const ordemAreas = ['Saúde', 'Biológicas', 'Exatas', 'Tecnologia', 'Humanas', 'Negócios', 'Outras'];
+    const gruposOrdenados = ordemAreas
+      .filter(a => grupos[a])
+      .map(a => [a, grupos[a]]);
+
+    corpo.innerHTML = gruposOrdenados.map(([area, discs]) => `
       <div style="margin-bottom:24px">
-        <div class="grupo-titulo">${grupo} · ${discs.length} disciplina${discs.length!==1?'s':''}</div>
-        ${discs.map(d => `
+        <div class="grupo-titulo">${area} · ${discs.length} matéria${discs.length!==1?'s':''}</div>
+        ${discs.map(d => {
+          const ctx = [];
+          if (d.curso) ctx.push(d.curso);
+          if (d.periodo) ctx.push(d.periodo);
+          const ctxStr = ctx.length ? ctx.join(' · ') : 'Sem currículo definido';
+          return `
           <div class="disc-item" style="border-left-color:${d.cor||'#888'}">
             <div class="disc-row">
               <div class="disc-info">
                 <span class="disc-sigla" style="color:${d.cor||'#888'}">${d.sigla}</span>
                 <span class="disc-nome">${d.nome}</span>
-                ${d.docente ? `<span class="disc-meta">${d.docente}</span>` : ''}
                 ${d.ch ? `<span class="disc-meta">${d.ch}h</span>` : ''}
+                <span class="disc-meta" style="opacity:0.7">${ctxStr}</span>
               </div>
               <div class="disc-btns">
+                <button class="btn-expandir" onclick="abrirExpandir('${d.id}')">+ Expandir</button>
                 <button class="btn" onclick="eliminar('${d.id}')">🗑</button>
               </div>
             </div>
-          </div>`).join('')}
+          </div>`;
+        }).join('')}
       </div>`).join('');
   } catch(e) {
     corpo.innerHTML = `<p style="color:var(--red);font-family:var(--mono);font-size:11px">Erro: ${e.message}</p>`;
+  }
+}
+
+// ============================================================
+// EXPANDIR MATÉRIA
+// ============================================================
+let expDisc = null;       // disciplina atualmente sendo expandida
+let expGerando = false;   // trava de execução
+
+async function abrirExpandir(id) {
+  if (!sbOk) { alert('Configura o Supabase primeiro.'); return; }
+
+  document.getElementById('exp-erro').style.display = 'none';
+  document.getElementById('exp-progress').textContent = 'A carregar...';
+  document.getElementById('exp-corpo').innerHTML = '<p style="font-family:var(--mono);font-size:11px;color:var(--ink3);text-align:center;padding:24px">Buscando matéria...</p>';
+  document.getElementById('modal-exp').classList.add('on');
+
+  try {
+    const res = await sbFetch(`${sbUrl}/rest/v1/disciplinas?id=eq.${id}&select=*`, 'GET');
+    if (!Array.isArray(res) || !res.length) throw new Error('Matéria não encontrada');
+    expDisc = res[0];
+    renderExpandir();
+  } catch (e) {
+    document.getElementById('exp-corpo').innerHTML = `<p style="color:var(--red);font-family:var(--mono);font-size:11px;padding:24px;text-align:center">Erro: ${e.message}</p>`;
+  }
+}
+
+function fecharExpandir() {
+  if (expGerando && !confirm('Geração em andamento. Fechar mesmo assim?')) return;
+  document.getElementById('modal-exp').classList.remove('on');
+  expDisc = null;
+}
+
+function statusMateria(d) {
+  // Calcula quantos itens existem vs esperados, baseado nos tópicos/unidades
+  const jd = d.json_data || {};
+  const unidades = jd.disciplina?.unidades || [];
+  const totT = unidades.reduce((a,u) => a + (u.topicos?.length || 0), 0);
+  const totU = unidades.length;
+
+  // Quantos resumos já existem (tópicos com campo resumo preenchido)
+  const resumosFeitos = unidades.reduce((a,u) =>
+    a + (u.topicos || []).filter(t => t.resumo && t.resumo.trim().length).length, 0);
+
+  return {
+    totalTopicos: totT,
+    totalUnidades: totU,
+    resumos: { feito: resumosFeitos, total: totT },
+    flashcards: { feito: (jd.flashcards || []).length, total: totT * 2 },
+    exercicios: { feito: (jd.exercicios || []).length, total: totT * 2 },
+    videos: { feito: (jd.roteiro_video || []).length, total: totU * 2 },
+    podcasts: { feito: (jd.podcast || []).length, total: totU * 2 }
+  };
+}
+
+function renderExpandir() {
+  if (!expDisc) return;
+  const d = expDisc;
+  const st = statusMateria(d);
+
+  document.getElementById('exp-titulo').textContent = d.nome;
+  document.getElementById('exp-subtitulo').textContent =
+    `${d.sigla} · ${st.totalUnidades} unidade${st.totalUnidades!==1?'s':''} · ${st.totalTopicos} tópico${st.totalTopicos!==1?'s':''}`;
+
+  const linhas = [
+    { k: 'resumos',    e: '📖', nm: 'Resumos',    st: st.resumos,    base: 'tópicos' },
+    { k: 'flashcards', e: '🃏', nm: 'Flashcards', st: st.flashcards, base: 'tópicos × 2' },
+    { k: 'exercicios', e: '✏️', nm: 'Exercícios', st: st.exercicios, base: 'tópicos × 2' },
+    { k: 'videos',     e: '🎥', nm: 'Vídeos',     st: st.videos,     base: 'unidades × 2' },
+    { k: 'podcasts',   e: '🎙', nm: 'Podcasts',   st: st.podcasts,   base: 'unidades × 2' }
+  ];
+
+  document.getElementById('exp-corpo').innerHTML = linhas.map(l => {
+    const cheio = l.st.feito >= l.st.total && l.st.total > 0;
+    const classe = cheio ? 'cheio' : (l.st.feito === 0 ? 'vazio' : '');
+    const labelStatus = cheio
+      ? `✓ Completo · ${l.st.feito}/${l.st.total}`
+      : l.st.feito === 0
+        ? `○ Vazio · 0/${l.st.total}`
+        : `◐ Parcial · ${l.st.feito}/${l.st.total}`;
+    const acaoTxt = cheio ? 'Adicionar mais' : (l.st.feito === 0 ? 'Gerar' : 'Completar');
+    return `
+      <div class="exp-row">
+        <div class="exp-info">
+          <div class="exp-nome">${l.e} ${l.nm}</div>
+          <div class="exp-status ${classe}">${labelStatus} · ${l.base}</div>
+        </div>
+        <div class="exp-action">
+          <button class="btn-exp gerar" id="btn-exp-${l.k}" onclick="expandirItem('${l.k}', ${cheio})">
+            <span class="spinner" id="spinner-exp-${l.k}" style="display:none;width:10px;height:10px"></span>
+            ${acaoTxt}
+          </button>
+        </div>
+      </div>`;
+  }).join('');
+
+  // Atualiza progresso geral
+  const totalGeral = linhas.reduce((a,l) => a + l.st.total, 0);
+  const feitoGeral = linhas.reduce((a,l) => a + Math.min(l.st.feito, l.st.total), 0);
+  const pct = totalGeral ? Math.round((feitoGeral/totalGeral)*100) : 0;
+  document.getElementById('exp-progress').textContent = `${pct}% completo`;
+
+  // Habilita/desabilita botão "tudo o que falta"
+  const algumFalta = linhas.some(l => l.st.feito < l.st.total);
+  document.getElementById('btn-exp-tudo').disabled = !algumFalta;
+}
+
+async function expandirItem(tipo, jaCheio) {
+  if (expGerando || !expDisc) return;
+
+  // Quantos novos gerar?
+  let qtNovos;
+  if (tipo === 'resumos') {
+    qtNovos = jaCheio ? 0 : null; // null = preenche todos os tópicos sem resumo
+    if (jaCheio) { alert('Todos os tópicos já têm resumo. Para regerar, apague a matéria e refaça.'); return; }
+  } else {
+    // Para flash/exerc/video/podcast: gera mais 1x do total esperado (o equivalente a "+1 round")
+    const st = statusMateria(expDisc);
+    const sub = st[tipo];
+    if (jaCheio) {
+      // já está cheio — pergunta quantos extras
+      const qt = prompt(`Quantos ${tipo} a mais? (1-50)`, '10');
+      qtNovos = parseInt(qt);
+      if (!qtNovos || qtNovos < 1 || qtNovos > 50) return;
+    } else {
+      qtNovos = sub.total - sub.feito; // completar o que falta
+    }
+  }
+
+  await executarExpansao([tipo], { [tipo]: qtNovos });
+}
+
+async function expandirTudo() {
+  if (expGerando || !expDisc) return;
+  const st = statusMateria(expDisc);
+  const tipos = [];
+  const qts = {};
+  for (const k of ['resumos','flashcards','exercicios','videos','podcasts']) {
+    const sub = st[k];
+    if (sub.feito < sub.total) {
+      tipos.push(k);
+      qts[k] = k === 'resumos' ? null : (sub.total - sub.feito);
+    }
+  }
+  if (!tipos.length) { alert('Tudo já está completo.'); return; }
+  await executarExpansao(tipos, qts);
+}
+
+async function executarExpansao(tipos, qts) {
+  if (expGerando) return;
+  expGerando = true;
+
+  const erroEl = document.getElementById('exp-erro');
+  const progEl = document.getElementById('exp-progress');
+  const btnTudo = document.getElementById('btn-exp-tudo');
+  const sptTudo = document.getElementById('spinner-exp-tudo');
+
+  erroEl.style.display = 'none';
+  btnTudo.disabled = true;
+  sptTudo.style.display = 'inline-block';
+  progEl.classList.add('ativo');
+
+  // Desativar todos os botões individuais
+  tipos.forEach(t => {
+    const b = document.getElementById('btn-exp-' + t);
+    const s = document.getElementById('spinner-exp-' + t);
+    if (b) b.disabled = true;
+    if (s) s.style.display = 'inline-block';
+  });
+
+  try {
+    const d = expDisc;
+    const jd = d.json_data || {};
+    const disc = jd.disciplina || {};
+    const unidades = disc.unidades || [];
+    const topicos = unidades.flatMap(u =>
+      (u.topicos || []).map(t => ({ id: t.id, nome: t.nome, unidade: u.titulo, refTopico: t }))
+    );
+    const unidadesPlano = unidades.map(u => ({
+      titulo: u.titulo, topicos: (u.topicos || []).map(t => t.nome).join(', ')
+    }));
+
+    // ---------- RESUMOS ----------
+    if (tipos.includes('resumos')) {
+      const semResumo = topicos.filter(t => !t.refTopico.resumo || !t.refTopico.resumo.trim());
+      for (let i = 0; i < semResumo.length; i++) {
+        const t = semResumo[i];
+        progEl.textContent = `Resumos... ${i+1}/${semResumo.length}`;
+        const r = await chamarAPI(PROMPT_RESUMO,
+          [{ type:'text', text:`Tópico: "${t.nome}" | Unidade: "${t.unidade}" | Disciplina: "${disc.nome}"\nGera 1 resumo. id="${t.id}"` }], 800);
+        const novoResumo = (r.resumos || [])[0];
+        if (novoResumo) {
+          t.refTopico.resumo = novoResumo.resumo || '';
+          t.refTopico.pontosChave = novoResumo.pontosChave || [];
+        }
+      }
+    }
+
+    // ---------- FLASHCARDS ----------
+    if (tipos.includes('flashcards')) {
+      jd.flashcards = jd.flashcards || [];
+      const qt = qts.flashcards;
+      // Distribui qt flashcards entre os tópicos (round-robin) — cada chamada gera 2
+      const rounds = Math.ceil(qt / 2);
+      for (let i = 0; i < rounds; i++) {
+        const t = topicos[i % topicos.length];
+        progEl.textContent = `Flashcards... ${jd.flashcards.length + 1}+ / ${qt}`;
+        const r = await chamarAPI(PROMPT_FLASH,
+          [{ type:'text', text:`Tópico: "${t.nome}" | Unidade: "${t.unidade}" | Disciplina: "${disc.nome}"` }], 500);
+        jd.flashcards.push(...(r.flashcards || []));
+        if (jd.flashcards.length >= (jd.flashcards.length - (r.flashcards||[]).length) + qt) break;
+      }
+    }
+
+    // ---------- EXERCÍCIOS ----------
+    if (tipos.includes('exercicios')) {
+      jd.exercicios = jd.exercicios || [];
+      const qt = qts.exercicios;
+      const inicial = jd.exercicios.length;
+      const rounds = Math.ceil(qt / 2);
+      for (let i = 0; i < rounds; i++) {
+        const t = topicos[i % topicos.length];
+        progEl.textContent = `Exercícios... ${jd.exercicios.length - inicial + 1}+ / ${qt}`;
+        const r = await chamarAPI(PROMPT_EXERCICIO,
+          [{ type:'text', text:`Tópico: "${t.nome}" | Disciplina: "${disc.nome}"` }], 800);
+        (r.exercicios || []).forEach(e => {
+          if (!e.topico) e.topico = t.nome;
+          jd.exercicios.push(e);
+        });
+        if (jd.exercicios.length - inicial >= qt) break;
+      }
+    }
+
+    // ---------- VÍDEOS ----------
+    if (tipos.includes('videos')) {
+      jd.roteiro_video = jd.roteiro_video || [];
+      const qt = qts.videos;
+      const inicial = jd.roteiro_video.length;
+      const rounds = Math.ceil(qt / 2);
+      for (let i = 0; i < rounds; i++) {
+        const u = unidadesPlano[i % unidadesPlano.length];
+        progEl.textContent = `Vídeos... ${jd.roteiro_video.length - inicial + 1}+ / ${qt}`;
+        const r = await chamarAPI(PROMPT_VIDEO,
+          [{ type:'text', text:`Disciplina: "${disc.nome}"\nUnidade: "${u.titulo}"\nTópicos: ${u.topicos}` }], 2000);
+        jd.roteiro_video.push(...(r.roteiro_video || []));
+        if (jd.roteiro_video.length - inicial >= qt) break;
+      }
+    }
+
+    // ---------- PODCASTS ----------
+    if (tipos.includes('podcasts')) {
+      jd.podcast = jd.podcast || [];
+      const qt = qts.podcasts;
+      const inicial = jd.podcast.length;
+      const rounds = Math.ceil(qt / 2);
+      for (let i = 0; i < rounds; i++) {
+        const u = unidadesPlano[i % unidadesPlano.length];
+        progEl.textContent = `Podcasts... ${jd.podcast.length - inicial + 1}+ / ${qt}`;
+        const r = await chamarAPI(PROMPT_PODCAST,
+          [{ type:'text', text:`Disciplina: "${disc.nome}"\nUnidade: "${u.titulo}"\nTópicos: ${u.topicos}` }], 2000);
+        jd.podcast.push(...(r.podcast || []));
+        if (jd.podcast.length - inicial >= qt) break;
+      }
+    }
+
+    // ---------- SALVAR (UPDATE) NO SUPABASE ----------
+    progEl.textContent = 'Guardando...';
+    const upd = await sbFetch(`${sbUrl}/rest/v1/disciplinas?id=eq.${expDisc.id}`, 'PATCH', {
+      json_data: jd
+    });
+    // PATCH retorna [] se sucesso ou objeto de erro
+    if (upd && upd.code) throw new Error(upd.message || JSON.stringify(upd));
+
+    // Atualiza estado local e re-renderiza
+    expDisc.json_data = jd;
+    progEl.textContent = '✓ Atualizado';
+    setTimeout(() => { progEl.classList.remove('ativo'); renderExpandir(); }, 600);
+
+  } catch (e) {
+    erroEl.textContent = 'Erro: ' + e.message;
+    erroEl.style.display = 'block';
+    progEl.textContent = '';
+    progEl.classList.remove('ativo');
+  } finally {
+    expGerando = false;
+    sptTudo.style.display = 'none';
+    tipos.forEach(t => {
+      const s = document.getElementById('spinner-exp-' + t);
+      if (s) s.style.display = 'none';
+    });
+    // Recarrega Biblioteca em segundo plano (para refletir mudanças)
+    if (typeof carregarBiblioteca === 'function') carregarBiblioteca();
   }
 }
 
