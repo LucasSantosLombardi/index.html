@@ -399,56 +399,80 @@ SCHEMA:
 
 Resposta COMEÇA com { e TERMINA com }. ZERO texto fora do JSON. ZERO markdown.`;
 
-const PROMPT_FLASH = `Você gera 1 flashcard para a Intensube.
+const PROMPT_FLASH = `Você gera 2 flashcards DIFERENTES para a Intensube sobre o mesmo tópico.
+
+REGRAS:
+- Os 2 flashcards devem cobrir ângulos DIFERENTES do tópico
+- Flashcard 1: definição / conceito-chave
+- Flashcard 2: aplicação / exemplo / comparação
+- Não repita a mesma pergunta com palavras diferentes
+- Cada flashcard é independente
 
 SCHEMA:
-{ "flashcards": [{ "f": "Pergunta direta?", "v": "Resposta em 1-2 frases." }] }
+{ "flashcards": [
+  { "f": "Pergunta 1?", "v": "Resposta em 1-2 frases." },
+  { "f": "Pergunta 2?", "v": "Resposta em 1-2 frases." }
+] }
 
 Resposta COMEÇA com { e TERMINA com }. ZERO texto fora do JSON. ZERO markdown.`;
 
-const PROMPT_VIDEO = `Você gera 1 roteiro de vídeo de 3 min para a Intensube.
+const PROMPT_VIDEO = `Você gera 2 roteiros de vídeo de 3 min cada para a Intensube sobre a mesma unidade.
 
 TOM: Conversacional, como YouTuber. De aluno para aluno.
 Use APENAS aspas simples se precisar citar algo. NUNCA aspas duplas dentro do script.
 
+REGRAS:
+- Os 2 roteiros devem ter ABORDAGENS DIFERENTES da mesma unidade
+- Roteiro 1: visão geral / introdução conceitual com exemplo prático
+- Roteiro 2: revisão para prova / pegadinhas comuns / dicas
+- Cada roteiro é independente, com gancho, desenvolvimento e fechamento próprios
+
 SCHEMA:
 {
-  "roteiro_video": [{
-    "unidade": "Título",
-    "duracao_alvo": "3 min",
-    "script": "Roteiro com [00:00]. Gancho, conceito, exemplo, fechamento. Sem aspas duplas."
-  }]
+  "roteiro_video": [
+    { "unidade": "Título", "duracao_alvo": "3 min", "script": "Roteiro 1 com [00:00]..." },
+    { "unidade": "Título", "duracao_alvo": "3 min", "script": "Roteiro 2 com [00:00]..." }
+  ]
 }
 
 Resposta COMEÇA com { e TERMINA com }. ZERO texto fora do JSON. ZERO markdown.`;
 
-const PROMPT_PODCAST = `Você gera 1 script de podcast para a Intensube.
+const PROMPT_PODCAST = `Você gera 2 scripts de podcast para a Intensube sobre a mesma unidade.
 
 TOM: Diálogo entre ALEX (curioso) e DANA (acessível). Começa direto.
 Use APENAS aspas simples se precisar citar algo. NUNCA aspas duplas dentro do script.
 
+REGRAS:
+- Os 2 episódios devem ter FOCOS DIFERENTES da mesma unidade
+- Episódio 1: panorama geral / por que esse assunto importa / conceitos fundamentais
+- Episódio 2: aplicações práticas / casos reais / curiosidades / dicas para prova
+- Cada episódio é independente, ~250 palavras
+
 SCHEMA:
 {
-  "podcast": [{
-    "unidade": "Título",
-    "formato": "diálogo",
-    "script": "ALEX e DANA dialogam. ~250 palavras. Sem aspas duplas."
-  }]
+  "podcast": [
+    { "unidade": "Título", "formato": "diálogo", "script": "Episódio 1: ALEX e DANA dialogam sobre o panorama..." },
+    { "unidade": "Título", "formato": "diálogo", "script": "Episódio 2: ALEX e DANA exploram aplicações..." }
+  ]
 }
 
 Resposta COMEÇA com { e TERMINA com }. ZERO texto fora do JSON. ZERO markdown.`;
 
-const PROMPT_EXERCICIO = `Você gera 1 exercício de múltipla escolha para a Intensube.
+const PROMPT_EXERCICIO = `Você gera 2 exercícios de múltipla escolha DIFERENTES para a Intensube sobre o mesmo tópico.
+
+REGRAS:
+- Os 2 exercícios devem cobrir NÍVEIS ou ÂNGULOS diferentes do tópico
+- Exercício 1: conceitual / definição / reconhecimento
+- Exercício 2: aplicação / análise de cenário / pegadinha
+- Varie qual alternativa é a correta entre os 2 (não deixe sempre a mesma letra)
+- Cada exercício é independente
 
 SCHEMA:
 {
-  "exercicios": [{
-    "topico": "Nome do tópico",
-    "q": "Enunciado?",
-    "opts": ["A", "B", "C", "D"],
-    "correta": 0,
-    "exp": "Explicação do gabarito em 2 frases."
-  }]
+  "exercicios": [
+    { "topico": "Nome do tópico", "q": "Enunciado 1?", "opts": ["A","B","C","D"], "correta": 0, "exp": "Explicação em 2 frases." },
+    { "topico": "Nome do tópico", "q": "Enunciado 2?", "opts": ["A","B","C","D"], "correta": 2, "exp": "Explicação em 2 frases." }
+  ]
 }
 
 Resposta COMEÇA com { e TERMINA com }. ZERO texto fora do JSON. ZERO markdown.`;
